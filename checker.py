@@ -6,22 +6,30 @@ import os
 CHECK_URL = "https://www.iyha.org.il/be/be/pro/rooms?lang=heb&chainid=186&hotel=10210_1&in=2026-03-26&out=2026-03-27&rooms=1&ad1=2&ch1=2&inf1=0&mergeResults=false"
 
 def check_availability():
+    session = requests.Session()
+    
+    # קודם "ביקור" בעמוד הראשי כדי לקבל cookies
+    session.get("https://www.iyha.org.il/", headers={
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+    })
+    
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
         "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "he-IL,he;q=0.9,en-US;q=0.8",
         "Referer": "https://www.iyha.org.il/",
+        "Origin": "https://www.iyha.org.il",
     }
+    
     try:
-        resp = requests.get(CHECK_URL, headers=headers, timeout=15)
+        resp = session.get(CHECK_URL, headers=headers, timeout=15)
         resp.raise_for_status()
         data = resp.json()
         print("Response:", data)
         
-        # בודק אם יש חדרים זמינים - מתאים אם ה-API מחזיר רשימת חדרים
         if isinstance(data, list) and len(data) > 0:
             return True, data
         if isinstance(data, dict):
-            # נסה מפתחות שכיחים
             rooms = data.get("rooms") or data.get("data") or data.get("results") or []
             if rooms:
                 return True, rooms
