@@ -1,31 +1,29 @@
-import requests
-import smtplib
-from email.mime.text import MIMEText
-import os
-
-CHECK_URL = "https://www.iyha.org.il/be/be/pro/rooms?lang=heb&chainid=186&hotel=10210_1&in=2026-03-26&out=2026-03-27&rooms=1&ad1=2&ch1=2&inf1=0&mergeResults=false"
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+import json, time
 
 def check_availability():
-    session = requests.Session()
+    options = Options()
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-gpu")
+    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36")
     
-    # קודם "ביקור" בעמוד הראשי כדי לקבל cookies
-    session.get("https://www.iyha.org.il/", headers={
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
-    })
-    
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-        "Accept": "application/json, text/plain, */*",
-        "Accept-Language": "he-IL,he;q=0.9,en-US;q=0.8",
-        "Referer": "https://www.iyha.org.il/",
-        "Origin": "https://www.iyha.org.il",
-    }
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
     
     try:
-        resp = session.get(CHECK_URL, headers=headers, timeout=15)
-        resp.raise_for_status()
-        data = resp.json()
-        print("Response:", data)
+        driver.get("https://www.iyha.org.il/")
+        time.sleep(2)
+        driver.get(CHECK_URL)
+        time.sleep(3)
+        
+        body = driver.find_element("tag name", "body").text
+        print("Response:", body[:500])
+        
+        data = json.loads(body)
         
         if isinstance(data, list) and len(data) > 0:
             return True, data
@@ -37,7 +35,9 @@ def check_availability():
     except Exception as e:
         print(f"Error checking availability: {e}")
         return None, str(e)
-
+    finally:
+        driver.quit()
+        
 def send_email(available_rooms):
     sender = os.environ["GMAIL_USER"]
     password = os.environ["GMAIL_APP_PASSWORD"]

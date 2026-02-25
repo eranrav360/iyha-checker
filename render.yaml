@@ -3,7 +3,7 @@ services:
     name: iyha-room-checker
     runtime: python
     schedule: "0 * * * *"   # כל שעה
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt && apt-get install -y chromium-driver
     startCommand: python checker.py
     envVars:
       - key: GMAIL_USER
