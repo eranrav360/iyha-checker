@@ -1,0 +1,14 @@
+services:
+  - type: cron
+    name: iyha-room-checker
+    runtime: python
+    schedule: "0 * * * *"   # כל שעה
+    buildCommand: pip install -r requirements.txt
+    startCommand: python checker.py
+    envVars:
+      - key: GMAIL_USER
+        sync: false
+      - key: GMAIL_APP_PASSWORD
+        sync: false
+      - key: NOTIFY_EMAIL
+        sync: false
