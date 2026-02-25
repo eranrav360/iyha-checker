@@ -21,8 +21,8 @@ def check_availability():
         page = context.new_page()
         
         try:
-            page.goto("https://www.iyha.org.il/", wait_until="networkidle")
-            page.goto(CHECK_URL, wait_until="networkidle")
+            page.goto("https://www.iyha.org.il/", wait_until="domcontentloaded", timeout=60000)
+            page.goto(CHECK_URL, wait_until="domcontentloaded", timeout=60000)
             
             body = page.inner_text("body")
             print("Response:", body[:500])
