@@ -58,5 +58,7 @@ if __name__ == "__main__":
         send_email(rooms)
     elif available is False:
         print("No rooms available.")
+        send_email("אין חדרים פנויים כרגע — אבל הסקריפט עובד!")  # זמני לבדיקה
     else:
         print("Check failed.")
+        send_email(f"שגיאה בבדיקה: {rooms}")  # זמני לבדיקה
