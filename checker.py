@@ -5,7 +5,7 @@ import sys
 
 # התקן chromium אם לא קיים
 subprocess.run([sys.executable, "-m", "playwright", "install", "chromium"], check=True)
-subprocess.run([sys.executable, "-m", "playwright", "install-deps", "chromium"], check=True)
+# install-deps דורש root - מדלגים
 
 def check_availability():
     with sync_playwright() as p:
