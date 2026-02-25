@@ -2,8 +2,8 @@ services:
   - type: cron
     name: iyha-room-checker
     runtime: python
-    schedule: "0 * * * *"   # כל שעה
-    buildCommand: pip install -r requirements.txt && apt-get install -y chromium-driver
+    schedule: "0 * * * *"
+    buildCommand: pip install -r requirements.txt && playwright install chromium && playwright install-deps chromium
     startCommand: python checker.py
     envVars:
       - key: GMAIL_USER

@@ -1,43 +1,36 @@
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
-import json, time
+from playwright.sync_api import sync_playwright
+import json
 
 def check_availability():
-    options = Options()
-    options.add_argument("--headless")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-gpu")
-    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36")
-    
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-    
-    try:
-        driver.get("https://www.iyha.org.il/")
-        time.sleep(2)
-        driver.get(CHECK_URL)
-        time.sleep(3)
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        context = browser.new_context(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36"
+        )
+        page = context.new_page()
         
-        body = driver.find_element("tag name", "body").text
-        print("Response:", body[:500])
-        
-        data = json.loads(body)
-        
-        if isinstance(data, list) and len(data) > 0:
-            return True, data
-        if isinstance(data, dict):
-            rooms = data.get("rooms") or data.get("data") or data.get("results") or []
-            if rooms:
-                return True, rooms
-        return False, []
-    except Exception as e:
-        print(f"Error checking availability: {e}")
-        return None, str(e)
-    finally:
-        driver.quit()
-        
+        try:
+            page.goto("https://www.iyha.org.il/", wait_until="networkidle")
+            page.goto(CHECK_URL, wait_until="networkidle")
+            
+            body = page.inner_text("body")
+            print("Response:", body[:500])
+            
+            data = json.loads(body)
+            
+            if isinstance(data, list) and len(data) > 0:
+                return True, data
+            if isinstance(data, dict):
+                rooms = data.get("rooms") or data.get("data") or data.get("results") or []
+                if rooms:
+                    return True, rooms
+            return False, []
+        except Exception as e:
+            print(f"Error checking availability: {e}")
+            return None, str(e)
+        finally:
+            browser.close()
+
 def send_email(available_rooms):
     sender = os.environ["GMAIL_USER"]
     password = os.environ["GMAIL_APP_PASSWORD"]
