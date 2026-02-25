@@ -1,5 +1,11 @@
 from playwright.sync_api import sync_playwright
 import json
+import subprocess
+import sys
+
+# התקן chromium אם לא קיים
+subprocess.run([sys.executable, "-m", "playwright", "install", "chromium"], check=True)
+subprocess.run([sys.executable, "-m", "playwright", "install-deps", "chromium"], check=True)
 
 def check_availability():
     with sync_playwright() as p:
