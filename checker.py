@@ -20,15 +20,28 @@ def check_availability():
         )
         page = context.new_page()
         
+        api_response = []
+        
+        def handle_response(response):
+            if "rooms" in response.url and response.status == 200:
+                try:
+                    data = response.json()
+                    print("API Response:", str(data)[:500])
+                    api_response.append(data)
+                except:
+                    pass
+        
+        page.on("response", handle_response)
+        
         try:
-            page.goto("https://www.iyha.org.il/", wait_until="domcontentloaded", timeout=60000)
             page.goto(CHECK_URL, wait_until="domcontentloaded", timeout=60000)
+            page.wait_for_timeout(5000)  # מחכה שה-API calls יסתיימו
             
-            body = page.inner_text("body")
-            print("Response:", body[:500])
+            if not api_response:
+                print("No API response captured")
+                return False, []
             
-            data = json.loads(body)
-            
+            data = api_response[0]
             if isinstance(data, list) and len(data) > 0:
                 return True, data
             if isinstance(data, dict):
@@ -41,7 +54,7 @@ def check_availability():
             return None, str(e)
         finally:
             browser.close()
-
+            
 def send_email(available_rooms):
     sender = os.environ["GMAIL_USER"]
     password = os.environ["GMAIL_APP_PASSWORD"]
