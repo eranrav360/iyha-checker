@@ -112,12 +112,8 @@ if __name__ == "__main__":
     if available is True:
         print(f"Found {len(rooms)} room(s)!")
         send_email(
-            subject='🏕️ יש חדרים פנויים באנ"א מצפה רמון!',
-            body=(
-                f"נמצאו {len(rooms)} חדרים פנויים!\n\n"
-                f"קישור להזמנה:\n{CHECK_URL}\n\n"
-                f"פרטים:\n{json.dumps(rooms, ensure_ascii=False, indent=2)}"
-            ),
+            subject='🏕️ יש חדר עם מרפסת פנוי באנ"א מצפה רמון!',
+            body=f"נמצא חדר עם מרפסת פנוי!\n\nקישור להזמנה:\n{CHECK_URL}",
         )
     elif available is False:
         print("No rooms available. No email sent.")
