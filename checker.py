@@ -69,12 +69,21 @@ def check_availability():
             rooms_list = obj.get("RoomsList", [])
 
             if has_results and rooms_list:
-                # חילוץ רשימת החדרים הפנויים
+                # חילוץ חדרים פנויים עם מרפסת בלבד
                 rooms = []
                 for room_group in rooms_list:
                     for room in room_group.get("Rooms", []):
                         if room.get("TotalAvailabilty", 0) > 0:
-                            rooms.append(room)
+                            # הדפסת שמות החדרים לצורך דיבאג
+                            room_name = (
+                                room.get("RoomName")
+                                or room.get("Name")
+                                or room.get("RoomTypeName")
+                                or str(room)[:100]
+                            )
+                            print(f"Available room: {room_name}")
+                            if "מרפסת" in str(room_name):
+                                rooms.append(room)
                 if rooms:
                     return True, rooms
 
