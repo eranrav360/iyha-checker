@@ -72,12 +72,11 @@ def check_availability():
                 # חילוץ חדרים פנויים עם מרפסת בלבד
                 rooms = []
                 for room_group in rooms_list:
-                    rg_debug = {k: str(v)[:80] for k, v in room_group.items() if k != "Rooms"}
-                    print(f"room_group fields: {rg_debug}")
                     for room in room_group.get("Rooms", []):
                         if room.get("TotalAvailabilty", 0) > 0:
-                            print(f"room fields: { {k: str(v)[:60] for k, v in room.items()} }")
-                            if "מרפסת" in str(room_group) or "מרפסת" in str(room):
+                            room_type = room.get("RoomType", "")
+                            print(f"Available room: {room_type}")
+                            if "מרפסת" in str(room_type):
                                 rooms.append(room)
                 if rooms:
                     return True, rooms
