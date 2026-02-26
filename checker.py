@@ -1,47 +1,88 @@
 import os
 import json
 import smtplib
-import requests
+import subprocess
+import sys
 from email.mime.text import MIMEText
+from playwright.sync_api import sync_playwright
 
 CHECK_URL = "https://www.iyha.org.il/be/be/pro/rooms?lang=heb&chainid=186&hotel=10210_1&in=2026-03-26&out=2026-03-27&rooms=1&ad1=2&ch1=2&inf1=0&mergeResults=false"
 
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36",
-    "Accept": "application/json, text/plain, */*",
-    "Referer": "https://www.iyha.org.il/",
-}
+# התקן chromium אם לא קיים
+subprocess.run([sys.executable, "-m", "playwright", "install", "chromium"], check=True)
+
 
 def check_availability():
-    try:
-        response = requests.get(CHECK_URL, headers=HEADERS, timeout=30)
-        print(f"Status: {response.status_code}")
-        print(f"Response (first 500 chars): {response.text[:500]}")
+    with sync_playwright() as p:
+        browser = p.chromium.launch(
+            headless=True,
+            args=[
+                "--no-sandbox",
+                "--disable-blink-features=AutomationControlled",
+            ],
+        )
+        context = browser.new_context(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+            locale="he-IL",
+            timezone_id="Asia/Jerusalem",
+            viewport={"width": 1280, "height": 800},
+            extra_http_headers={
+                "Accept-Language": "he-IL,he;q=0.9,en-US;q=0.8,en;q=0.7",
+            },
+        )
 
-        data = response.json()
+        # מסתיר navigator.webdriver
+        context.add_init_script("""
+            Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+        """)
 
-        # המבנה יכול להיות רשימה ישירה או dict עם מפתח
-        rooms = []
-        if isinstance(data, list):
-            rooms = data
-        elif isinstance(data, dict):
-            rooms = (
-                data.get("rooms")
-                or data.get("data")
-                or data.get("results")
-                or []
-            )
+        page = context.new_page()
+        api_responses = []
 
-        if rooms:
-            print(f"Found {len(rooms)} room(s)!")
-            return True, rooms
-        else:
-            print("No rooms found in response.")
+        def handle_response(response):
+            if "rooms" in response.url and response.status == 200:
+                try:
+                    data = response.json()
+                    print("API captured:", str(data)[:300])
+                    api_responses.append(data)
+                except Exception as e:
+                    print(f"Failed to parse API response: {e}")
+
+        page.on("response", handle_response)
+
+        try:
+            # קודם כל נגיע לדף הבית כדי לקבל cookies תקינים
+            page.goto("https://www.iyha.org.il/", wait_until="domcontentloaded", timeout=60000)
+            page.wait_for_timeout(2000)
+
+            # עכשיו ניגש ל-URL עם החדרים
+            page.goto(CHECK_URL, wait_until="domcontentloaded", timeout=60000)
+            page.wait_for_timeout(6000)
+
+            print(f"Page title: {page.title()}")
+            print(f"API responses captured: {len(api_responses)}")
+
+            if not api_responses:
+                print("No API response captured — dumping page text:")
+                print(page.inner_text("body")[:500])
+                return False, []
+
+            data = api_responses[0]
+            rooms = []
+            if isinstance(data, list):
+                rooms = data
+            elif isinstance(data, dict):
+                rooms = data.get("rooms") or data.get("data") or data.get("results") or []
+
+            if rooms:
+                return True, rooms
             return False, []
 
-    except Exception as e:
-        print(f"Error checking availability: {e}")
-        return None, str(e)
+        except Exception as e:
+            print(f"Error: {e}")
+            return None, str(e)
+        finally:
+            browser.close()
 
 
 def send_email(subject, body):
@@ -66,18 +107,16 @@ if __name__ == "__main__":
     if available is True:
         print(f"Found rooms: {rooms}")
         send_email(
-            subject="🏕️ יש חדרים פנויים באנ\"א מצפה רמון!",
+            subject='🏕️ יש חדרים פנויים באנ"א מצפה רמון!',
             body=(
-                f"נמצאו חדרים פנויים באכסניית מצפה רמון!\n\n"
+                f"נמצאו חדרים פנויים!\n\n"
                 f"קישור להזמנה:\n{CHECK_URL}\n\n"
                 f"פרטים:\n{json.dumps(rooms, ensure_ascii=False, indent=2)}"
             ),
         )
     elif available is False:
         print("No rooms available. No email sent.")
-        # אין אימייל — אין חדרים, אין צורך להודיע
     else:
-        # שגיאה אמיתית — שווה לדעת
         print(f"Check failed: {rooms}")
         send_email(
             subject="⚠️ שגיאה בבדיקת חדרים - מצפה רמון",
