@@ -6,7 +6,7 @@ import sys
 from email.mime.text import MIMEText
 from playwright.sync_api import sync_playwright
 
-CHECK_URL = "https://www.iyha.org.il/be/be/pro/rooms?lang=heb&chainid=186&hotel=10210_1&in=2026-03-26&out=2026-03-27&rooms=1&ad1=2&ch1=2&inf1=0&mergeResults=false"
+CHECK_URL = "https://www.iyha.org.il/be/be/pro/rooms?lang=heb&chainid=186&hotel=10210_1&in=2026-03-25&out=2026-03-27&rooms=1&ad1=2&ch1=2&inf1=0&mergeResults=false"
 
 subprocess.run([sys.executable, "-m", "playwright", "install", "chromium"], check=True)
 
